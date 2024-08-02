@@ -11,7 +11,7 @@ def log(message):
     print(f'{timestamp}  {message}')
 
 
-class H5Loader():
+class H5Loader:
     def __init__(self, datapath, date, user):
         # Initializes the folder (YEAR\\mm\\dd-User) from which data is read
         Y = date['Y']
@@ -63,7 +63,7 @@ class H5Loader():
 
 
 class H5File2Save:
-    def __init__(self, folderpath, filename, user):
+    def __init__(self, folderpath, filename, user='Niko'):
         self.date = None
         self.folderpath = folderpath
         self.filename = filename
@@ -80,8 +80,8 @@ class H5File2Save:
         date = f'{Y}-{m}-{d}, {H}:{M}'
         self.date = date
         # turn data into numpy array 
-        axes_save = np.array(axes_list)
-        data_save = np.array(data_list)
+        # axes_save = np.array(axes_list)
+        # data_save = np.array(data_list)
 
         # check if folder exists and create folder
         if not os.path.exists(self.folderpath):
@@ -89,36 +89,18 @@ class H5File2Save:
 
         # check if filename exists and create filename
         if os.path.exists(os.path.join(self.folderpath, self.filename + '.h5')):
-            self.log(f'The file {self.filename} exists. Redefining filename as {self.filename}_new.h5')
+            log(f'The file {self.filename} exists. Redefining filename as {self.filename}_new.h5')
             self.filename = self.filename + '_new'
         filename = f'{self.filename}.h5'
         self.currentfile = filename
 
         with h5py.File(os.path.join(self.folderpath, filename), 'w') as file:
             # Save data
-            group = file.create_group('Data')
-            group.create_dataset('axes', data=axes_save, maxshape=(None, axes_save.shape[1]), chunks=True)
-            group.create_dataset('data', data=data_save, maxshape=(None, data_save.shape[1]), chunks=True)
-            # group.create_dataset('rangelim', data=self.range_lim)
-            # Save scan parameters
-            # group2 = file.create_group('Scan')
-            # for i in range(len(self.device)):
-            #     group2.create_dataset(self.type[str(i)], data=f'{self.val[str(i)]} ({self.unit[str(i)]})')
-            # # Save static parameters
-            # group3 = file.create_group('Static')
-            # group3.create_dataset('datetime', data=date)
-            # for i in range(len(self.static)):
-            #     instr = self.static[str(i)]
-            #     getparam = getattr(instr, instr.method_get)
-            #     param = getparam()
-            #     group3.create_dataset(instr.type, data=param)
-            # # Save detector parameters
-            # group4 = file.create_group('Detector')
-            # for i in range(len(self.detector)):
-            #     instr = self.detector[str(i)]
-            #     param = instr.param
-            #     for key in param:
-            #         group4.create_dataset(f'Det{i}_{key}', data=param[key])
+            for i, groups in enumerate(axes_list):
+                # group = file.create_group(groups)
+                data = np.array(data_list[i]).transpose()
+                shape = data.shape
+                file.create_dataset(axes_list[i], data=data, shape=shape, chunks=True)
 
     def update_scan(self, axes_list, data_list):
         data_a = np.array(data_list)
@@ -145,7 +127,7 @@ class H5File2Save:
 
         # check if filename exists and create filename
         if os.path.exists(os.path.join(self.folderpath, self.filename+'.h5')):
-            self.log(f'The file {self.filename} exists. Redefining filename as {self.filename}_new.h5')
+            log(f'The file {self.filename} exists. Redefining filename as {self.filename}_new.h5')
             self.filename = self.filename +'_new'
 
         with open(os.path.join(self.folderpath, f'readme_{self.filename}.txt'),'w') as file:
