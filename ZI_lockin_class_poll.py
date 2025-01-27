@@ -34,7 +34,6 @@ class Lockin:
 
 
     def getXYR(self):
-
         time_c = self.get_time_constant()
         while True:
             try:
