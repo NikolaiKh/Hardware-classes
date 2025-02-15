@@ -12,6 +12,8 @@ class MMcamera():
         # self.instr.set_property('Core', 'AutoShutter', 0)
         self.mmdir = "C:\Program Files\Micro-Manager-2.0.3"
         self.configfile = "MMConfig_pvcam_simple_1.cfg"
+        self.name = self.get_camera_name()
+        print(f"Camera {self.name } is connected")
         self.show = show
         self.param = {}
         self.method_get = 'get_params'
@@ -21,6 +23,9 @@ class MMcamera():
     def log(self, message):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f'{timestamp}  {message}')
+
+    def get_camera_name(self):
+        return self.instr.get_property("Camera", "Description")
 
     def get_image(self):
         self.instr.snap_image()
@@ -57,13 +62,15 @@ class MMcamera():
         return self.param
 
     def set_exposure(self, val):
-        if val <= 8000:
-            self.instr.set_exposure(val)
-        else:
-            self.log(f'Value exceeds maximum. \n\
-                    Setting to maximum acquisition time: 8 000 ms.')
-            self.instr.set_exposure(8000)
-        self.get_params()
+        # if val <= 8000:
+        #     self.instr.set_exposure(val)
+        # else:
+        #     self.log(f'Value exceeds maximum. \n\
+        #             Setting to maximum acquisition time: 8 000 ms.')
+        #     self.instr.set_exposure(8000)
+        self.instr.set_exposure(val)
+        # self.instr.set_property("Camera", "Exposure", val)
+        # self.get_params()
 
     def set_binning(self, binning=1):
         if isinstance(binning, int):
@@ -71,7 +78,7 @@ class MMcamera():
         else:
             val = binning
         self.instr.set_property("Camera", "Binning", val)
-        self.get_params()
+        # self.get_params()
 
     def get_binning(self):
         return self.instr.get_property("Camera", "Binning")
@@ -81,18 +88,24 @@ class MMcamera():
 
     def set_PMode(self, mode="Normal"):
         self.instr.set_property("Camera", "PMode", mode)
-        self.get_params()
+        # self.get_params()
 
     def set_PixelType(self, val):
         self.instr.set_property("Camera", "PixelType", val)
-        self.get_params()
+        # self.get_params()
 
     def set_gain(self, val=1):
         self.instr.set_property("Camera", "Gain", str(val))
-        self.get_params()
+        # self.get_params()
 
     def get_gain(self):
-        return self.instr.get_property("Camera", "Gain")
+        if "Hamamatsu" in self.name:
+            return 1
+        else:
+            return self.instr.get_property("Camera", "Gain")
+    
+    def get_BitDepth(self):
+        return self.instr.get_property("Camera", "BitDepth")
 
     def set_MaxSens(self, binning=4):  # for PVCAM cameras
         self.set_binning(binning)
@@ -120,13 +133,75 @@ class MMcamera():
             allowed.append(javalist.get(index))
         return allowed
 
+    def get_allReadoutRates(self):
+        javalist = self.instr.get_allowed_property_values("Camera", "ReadoutRate")
+        allowed = []
+        for index in range(javalist.capacity()):
+            allowed.append(javalist.get(index))
+        return allowed
+
+    def set_ReadoutRate(self, val):
+        self.instr.set_property("Camera", "ReadoutRate", str(val))
+
+    def get_ReadoutRate(self):
+        if "Hamamatsu" in self.name:
+            return
+        else:
+            return self.instr.get_property("Camera", "ReadoutRate")
+
+    def get_allTriggerModes(self):
+        javalist = self.instr.get_allowed_property_values("Camera", "TriggerMode")
+        allowed = []
+        for index in range(javalist.capacity()):
+            allowed.append(javalist.get(index))
+        return allowed
+
+    def get_TriggerMode(self):
+        return self.instr.get_property("Camera", "TriggerMode")
+
+    def set_TriggerMode(self, val="Timed"):
+        self.instr.set_property("Camera", "TriggerMode", str(val))
+
+    def get_exposure_time(self):
+        return self.instr.get_property("Camera", "Exposure")
+
+    def get_allExposureTimes(self):
+        javalist = self.instr.get_allowed_property_values("Camera", "Exposure")
+        allowed = []
+        for index in range(javalist.capacity()):
+            allowed.append(javalist.get(index))
+        return allowed
+
+    def get_test(self):
+        low_limit = self.instr.get_property_lower_limit("Camera", "Exposure")
+        upper_limit = self.instr.get_property_upper_limit("Camera", "Exposure")
+        print(f"Lower limit: {low_limit}")
+        print(f"Upper limit: {upper_limit}")
+        javalist = self.instr.get_allowed_property_values("Camera", "Exposure")
+        allowed = []
+        for index in range(javalist.capacity()):
+            allowed.append(javalist.get(index))
+        print(f"Allowed: {allowed}")
+        is_limited = self.instr.has_property_limits("Camera", "Exposure")
+        print(f"Are limits?: {is_limited}")
+        javalist2 = self.instr.get_device_property_names("Camera")
+        property_names = []
+        for index in range(javalist.capacity()):
+            property_names.append(javalist.get(index))
+        exp_type = self.instr.get_property_type("Camera", "Exposure")
+        print(f"Type: {exp_type}")
+        return
+
+
 
 if __name__ == "__main__":
     camera = MMcamera()
-    camera.set_exposure(100)
-    # print(f"Explosure time {camera.getExptime()} ms")
+    # camera.set_exposure(0.1)
+    print(f"Explosure time {camera.get_exposure_time()} ms")
+    print(f"All allowed Exposure times: {camera.get_allExposureTimes()}")
+    print(f"Result of test: {camera.get_test()}")
     # camera.setMaxSens("8x8")
-    camera.set_MaxSens(4)
+    # camera.set_MaxSens(4)
     # camera.set_gain(2)
     print(f"Binning {camera.get_binning()}")
     print(f"All allowed binning options: {camera.get_allBinningvalues()}")
@@ -135,7 +210,11 @@ if __name__ == "__main__":
     # print(f"PMode {camera.getPMode()}")
     print(f"All PMode options: {camera.get_allPModevalues()}")
     # camera.setGain(2)
-    print(f"Gain {camera.get_gain()}")
+    print(f"Gain: {camera.get_gain()}")
+    readout_rates = camera.get_allReadoutRates()
+    print(f"All ReadoutRates options: {readout_rates}")
+    # camera.set_ReadoutRate(readout_rates[1])
+    print(f"Setted ReadoutRate: {camera.get_ReadoutRate()}")
     # print(f"Bytes per pixel {camera.getBytesPerPixel()}")
     # img = camera.get_image()
     camera.plot_img()
