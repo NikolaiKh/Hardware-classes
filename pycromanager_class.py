@@ -13,7 +13,7 @@ class MMcamera():
         self.mmdir = "C:\Program Files\Micro-Manager-2.0.3"
         self.configfile = "MMConfig_pvcam_simple_1.cfg"
         self.name = self.get_camera_name()
-        print(f"Camera {self.name } is connected")
+        print(f"Camera {self.name} is connected")
         self.show = show
         self.param = {}
         self.method_get = 'get_params'
@@ -39,6 +39,7 @@ class MMcamera():
     def plot_img(self):
         img = self.get_image()
         plt.imshow(img, cmap='gray')
+        plt.colorbar(orientation='vertical')
         plt.show()
 
     def get_image_1D(self):
@@ -72,6 +73,10 @@ class MMcamera():
         # self.instr.set_property("Camera", "Exposure", val)
         # self.get_params()
 
+    def set_shortest_exposure(self):
+        val = self.instr.get_property_lower_limit("Camera", "Exposure")
+        self.instr.set_exposure(val*1.01)   # lowest value freezes MM with Hamamatsu cam
+
     def set_binning(self, binning=1):
         if isinstance(binning, int):
             val = f"{binning}x{binning}"
@@ -84,14 +89,30 @@ class MMcamera():
         return self.instr.get_property("Camera", "Binning")
 
     def get_PMode(self):
-        return self.instr.get_property("Camera", "PMode")
+        if "Hamamatsu" not in self.name:
+            return self.instr.get_property("Camera", "PMode")
 
     def set_PMode(self, mode="Normal"):
-        self.instr.set_property("Camera", "PMode", mode)
+        if "Hamamatsu" not in self.name:
+            self.instr.set_property("Camera", "PMode", mode)
         # self.get_params()
+
+    def get_allPModevalues(self):
+        if "Hamamatsu" not in self.name:
+            javalist = self.instr.get_allowed_property_values("Camera", "PMode")
+        else:
+            javalist = self.instr.get_allowed_property_values("Camera", "SENSOR MODE")
+        allowed = []
+        for index in range(javalist.capacity()):
+            allowed.append(javalist.get(index))
+        return allowed
 
     def set_PixelType(self, val):
         self.instr.set_property("Camera", "PixelType", val)
+        # self.get_params()
+
+    def get_PixelType(self):
+        return self.instr.get_property("Camera", "PixelType")
         # self.get_params()
 
     def set_gain(self, val=1):
@@ -119,35 +140,38 @@ class MMcamera():
             allowed.append(javalist.get(index))
         return allowed
 
-    def get_allPModevalues(self):
-        javalist = self.instr.get_allowed_property_values("Camera", "PMode")
-        allowed = []
-        for index in range(javalist.capacity()):
-            allowed.append(javalist.get(index))
-        return allowed
-
     def get_allGainvalues(self):
-        javalist = self.instr.get_allowed_property_values("Camera", "Gain")
-        allowed = []
-        for index in range(javalist.capacity()):
-            allowed.append(javalist.get(index))
-        return allowed
+        if "Hamamatsu" not in self.name:
+            javalist = self.instr.get_allowed_property_values("Camera", "Gain")
+            allowed = []
+            for index in range(javalist.capacity()):
+                allowed.append(javalist.get(index))
+            return allowed
+        else:
+            return 1
 
     def get_allReadoutRates(self):
-        javalist = self.instr.get_allowed_property_values("Camera", "ReadoutRate")
-        allowed = []
-        for index in range(javalist.capacity()):
-            allowed.append(javalist.get(index))
-        return allowed
+        if "Hamamatsu" not in self.name:
+            javalist = self.instr.get_allowed_property_values("Camera", "ReadoutRate")
+            allowed = []
+            for index in range(javalist.capacity()):
+                allowed.append(javalist.get(index))
+            return allowed
+        else:
+            read_time = float(self.instr.get_property("Camera", "ReadoutTime"))
+            return 1/read_time
+
 
     def set_ReadoutRate(self, val):
-        self.instr.set_property("Camera", "ReadoutRate", str(val))
+        if "Hamamatsu" not in self.name:  # hamamatsu has no the option
+            self.instr.set_property("Camera", "ReadoutRate", str(val))
 
     def get_ReadoutRate(self):
-        if "Hamamatsu" in self.name:
-            return
-        else:
+        if "Hamamatsu" not in self.name:
             return self.instr.get_property("Camera", "ReadoutRate")
+        else:
+            read_time = float(self.instr.get_property("Camera", "ReadoutTime"))
+            return 1 / read_time
 
     def get_allTriggerModes(self):
         javalist = self.instr.get_allowed_property_values("Camera", "TriggerMode")
@@ -157,10 +181,40 @@ class MMcamera():
         return allowed
 
     def get_TriggerMode(self):
-        return self.instr.get_property("Camera", "TriggerMode")
+        if "Hamamatsu" not in self.name:
+            return self.instr.get_property("Camera", "TriggerMode")
+        else:
+            return self.instr.get_property("Camera", "TRIGGER SOURCE")
 
     def set_TriggerMode(self, val="Timed"):
-        self.instr.set_property("Camera", "TriggerMode", str(val))
+        # Options we used in experiments (for Teledyne cameras):
+        # Timed - internal trigger
+        # Strobed - external trigger / internal exposure time
+        # Bulb - external trigger / external exposure time
+        if "Hamamatsu" not in self.name:
+            self.instr.set_property("Camera", "TriggerMode", str(val))
+        else:   # adaptation for Hamamatsu Quest v1
+            if val == "Timed":
+                val = "INTERNAL"
+            elif val == "Strobed":
+                val = "EXTERNAL"
+                self.instr.set_property("Camera", "TRIGGER GLOBAL EXPOSURE", "GLOBAL RESET")
+            self.instr.set_property("Camera", "TRIGGER SOURCE", str(val))
+
+    def set_trigger_polarity(self, val="POSITIVE"):
+        if "Hamamatsu" in self.name:
+            self.instr.set_property("Camera", "TriggerPolarity", str(val))
+
+    def get_TriggerPolarity(self):
+        if "Hamamatsu" in self.name:
+            return self.instr.get_property("Camera", "TriggerPolarity")
+
+    def get_allTriggerPolarities(self):
+        javalist = self.instr.get_allowed_property_values("Camera", "TriggerPolarity")
+        allowed = []
+        for index in range(javalist.capacity()):
+            allowed.append(javalist.get(index))
+        return allowed
 
     def get_exposure_time(self):
         return self.instr.get_property("Camera", "Exposure")
@@ -196,16 +250,23 @@ class MMcamera():
 
 if __name__ == "__main__":
     camera = MMcamera()
-    # camera.set_exposure(0.1)
-    print(f"Explosure time {camera.get_exposure_time()} ms")
+    # camera.set_exposure(0.034)
+    camera.set_shortest_exposure()
+    print(f"Exposure time: {camera.get_exposure_time()} ms")
     print(f"All allowed Exposure times: {camera.get_allExposureTimes()}")
-    print(f"Result of test: {camera.get_test()}")
+    # print(f"Result of test: {camera.get_test()}")
     # camera.setMaxSens("8x8")
     # camera.set_MaxSens(4)
     # camera.set_gain(2)
-    print(f"Binning {camera.get_binning()}")
+    print(f"Trigger mode: {camera.get_TriggerMode()}")
     print(f"All allowed binning options: {camera.get_allBinningvalues()}")
-    # print(f"Pixel type {camera.getPixelType()}")
+    camera.set_binning(2)
+    print(f"Binning {camera.get_binning()}")
+    print(f"Pixel type {camera.get_PixelType()}")
+    print(f"All trigger polarities: {camera.get_allTriggerPolarities()}")
+    print(f"Current trigger polarity: {camera.get_TriggerPolarity()}")
+    camera.set_trigger_polarity("POSITIVE")
+    print(f"Current trigger polarity: {camera.get_TriggerPolarity()}")
     # camera.setPMode("Alternate Normal")
     # print(f"PMode {camera.getPMode()}")
     print(f"All PMode options: {camera.get_allPModevalues()}")
