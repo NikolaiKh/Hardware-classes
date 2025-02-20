@@ -62,6 +62,8 @@ class MMcamera():
                 self.log(message)
         return self.param
 
+    def get_exposure_time(self):
+        return self.instr.get_property("Camera", "Exposure")
     def set_exposure(self, val):
         # if val <= 8000:
         #     self.instr.set_exposure(val)
@@ -69,13 +71,26 @@ class MMcamera():
         #     self.log(f'Value exceeds maximum. \n\
         #             Setting to maximum acquisition time: 8 000 ms.')
         #     self.instr.set_exposure(8000)
+        if "Hamamatsu" in self.name:
+            scan_mode = int(self.get_scan_mode())
+            if scan_mode == 2:
+                exp_step = float(self.instr.get_property("Camera", "INTERNAL LINE INTERVAL"))
+            else:
+                exp_step = 0.03394 + 0.0001/11   # step for Ultra Quiet mode
+            # exp_step = float(self.instr.get_property_lower_limit("Camera", "Exposure"))
+            ratio = -(-val // exp_step)  # in ms, round up to integer
+            val = exp_step * ratio   # calculation of the new exposure value
         self.instr.set_exposure(val)
         # self.instr.set_property("Camera", "Exposure", val)
         # self.get_params()
 
     def set_shortest_exposure(self):
-        val = self.instr.get_property_lower_limit("Camera", "Exposure")
-        self.instr.set_exposure(val*1.01)   # lowest value freezes MM with Hamamatsu cam
+        if self.get_scan_mode() == "2":
+            # exp_step = float(self.instr.get_property("Camera", "INTERNAL LINE INTERVAL"))
+            val = self.instr.get_property_lower_limit("Camera", "Exposure")
+            self.set_exposure(val*1.1)   # lower limit freezes MM with Hamamatsu cam
+        else:
+            self.set_exposure(0.05)
 
     def set_binning(self, binning=1):
         if isinstance(binning, int):
@@ -89,11 +104,15 @@ class MMcamera():
         return self.instr.get_property("Camera", "Binning")
 
     def get_PMode(self):
-        if "Hamamatsu" not in self.name:
+        if "Hamamatsu" in self.name:
+            return self.instr.get_property("Camera", "SENSOR MODE")
+        else:
             return self.instr.get_property("Camera", "PMode")
 
     def set_PMode(self, mode="Normal"):
-        if "Hamamatsu" not in self.name:
+        if "Hamamatsu" in self.name:
+            self.instr.set_property("Camera", "SENSOR MODE", mode)
+        else:
             self.instr.set_property("Camera", "PMode", mode)
         # self.get_params()
 
@@ -116,7 +135,10 @@ class MMcamera():
         # self.get_params()
 
     def set_gain(self, val=1):
-        self.instr.set_property("Camera", "Gain", str(val))
+        if "Hamamatsu" in self.name:
+            return
+        else:
+            self.instr.set_property("Camera", "Gain", str(val))
         # self.get_params()
 
     def get_gain(self):
@@ -124,21 +146,6 @@ class MMcamera():
             return 1
         else:
             return self.instr.get_property("Camera", "Gain")
-    
-    def get_BitDepth(self):
-        return self.instr.get_property("Camera", "BitDepth")
-
-    def set_MaxSens(self, binning=4):  # for PVCAM cameras
-        self.set_binning(binning)
-        self.set_PMode("Alternate Normal")
-        self.set_gain(2)
-
-    def get_allBinningvalues(self):
-        javalist = self.instr.get_allowed_property_values("Camera", "Binning")
-        allowed = []
-        for index in range(javalist.capacity()):
-            allowed.append(javalist.get(index))
-        return allowed
 
     def get_allGainvalues(self):
         if "Hamamatsu" not in self.name:
@@ -149,6 +156,28 @@ class MMcamera():
             return allowed
         else:
             return 1
+    
+    def get_BitDepth(self):
+        if "Hamamatsu" in self.name:
+            return self.instr.get_property("Camera", "Bits per Channel")
+        else:
+            return self.instr.get_property("Camera", "BitDepth")
+
+    def set_MaxSens(self, binning=4):
+        self.set_binning(binning)
+        if "Hamamatsu" in self.name:
+            self.set_PMode("PHOTON NUMBER RESOLVING")
+        else:
+            # for PVCAM cameras
+            self.set_PMode("Alternate Normal")
+            self.set_gain(2)
+
+    def get_allBinningvalues(self):
+        javalist = self.instr.get_allowed_property_values("Camera", "Binning")
+        allowed = []
+        for index in range(javalist.capacity()):
+            allowed.append(javalist.get(index))
+        return allowed
 
     def get_allReadoutRates(self):
         if "Hamamatsu" not in self.name:
@@ -161,7 +190,6 @@ class MMcamera():
             read_time = float(self.instr.get_property("Camera", "ReadoutTime"))
             return 1/read_time
 
-
     def set_ReadoutRate(self, val):
         if "Hamamatsu" not in self.name:  # hamamatsu has no the option
             self.instr.set_property("Camera", "ReadoutRate", str(val))
@@ -171,10 +199,13 @@ class MMcamera():
             return self.instr.get_property("Camera", "ReadoutRate")
         else:
             read_time = float(self.instr.get_property("Camera", "ReadoutTime"))
-            return 1 / read_time
+            return 1/read_time
 
     def get_allTriggerModes(self):
-        javalist = self.instr.get_allowed_property_values("Camera", "TriggerMode")
+        if "Hamamatsu" not in self.name:
+            javalist = self.instr.get_allowed_property_values("Camera", "TriggerMode")
+        else:
+            javalist = self.instr.get_allowed_property_values("Camera", "TRIGGER SOURCE")
         allowed = []
         for index in range(javalist.capacity()):
             allowed.append(javalist.get(index))
@@ -199,7 +230,10 @@ class MMcamera():
             elif val == "Strobed":
                 val = "EXTERNAL"
                 self.instr.set_property("Camera", "TRIGGER GLOBAL EXPOSURE", "GLOBAL RESET")
+                self.set_trigger_polarity("POSITIVE")
             self.instr.set_property("Camera", "TRIGGER SOURCE", str(val))
+            mode = self.instr.get_property("Camera", "TRIGGER SOURCE")
+            print(f"Triggermode: { mode }")
 
     def set_trigger_polarity(self, val="POSITIVE"):
         if "Hamamatsu" in self.name:
@@ -216,15 +250,31 @@ class MMcamera():
             allowed.append(javalist.get(index))
         return allowed
 
-    def get_exposure_time(self):
-        return self.instr.get_property("Camera", "Exposure")
-
     def get_allExposureTimes(self):
         javalist = self.instr.get_allowed_property_values("Camera", "Exposure")
         allowed = []
         for index in range(javalist.capacity()):
             allowed.append(javalist.get(index))
         return allowed
+
+    def get_scan_mode(self):  # for Hamamatsu cam
+        result = self.instr.get_property("Camera", "ScanMode")
+        return result
+
+    def set_scan_mode(self, val):  # for Hamamatsu cam
+        # 1 = low nise mode
+        # 2 = fast mode
+        if "Hamamatsu" in self.name:
+            self.instr.set_property("Camera", "ScanMode", val)
+        else:
+            # for Teledyne camera
+            match val:
+                case 1:
+                    self.instr.set_property("Camera", "PMode", "Alternate Normal")
+                    ro_rates = self.get_allReadoutRates()
+                    self.set_ReadoutRate(ro_rates[0])
+                case _:
+                    self.instr.set_property("Camera", "PMode", "Normal")
 
     def get_test(self):
         low_limit = self.instr.get_property_lower_limit("Camera", "Exposure")
@@ -250,32 +300,52 @@ class MMcamera():
 
 if __name__ == "__main__":
     camera = MMcamera()
-    # camera.set_exposure(0.034)
-    camera.set_shortest_exposure()
-    print(f"Exposure time: {camera.get_exposure_time()} ms")
-    print(f"All allowed Exposure times: {camera.get_allExposureTimes()}")
+    # camera.set_exposure(100)
+    # camera.set_shortest_exposure()
+    # print(f"Exposure time: {camera.get_exposure_time()} ms")
+    # print(f"All allowed Exposure times: {camera.get_allExposureTimes()}")
     # print(f"Result of test: {camera.get_test()}")
     # camera.setMaxSens("8x8")
     # camera.set_MaxSens(4)
     # camera.set_gain(2)
-    print(f"Trigger mode: {camera.get_TriggerMode()}")
+
     print(f"All allowed binning options: {camera.get_allBinningvalues()}")
-    camera.set_binning(2)
+    camera.set_binning(4)
     print(f"Binning {camera.get_binning()}")
     print(f"Pixel type {camera.get_PixelType()}")
+
+    print(f"Trigger mode: {camera.get_TriggerMode()}")
+    # camera.set_TriggerMode("Timed")
+    print(f"Trigger mode: {camera.get_TriggerMode()}")
     print(f"All trigger polarities: {camera.get_allTriggerPolarities()}")
     print(f"Current trigger polarity: {camera.get_TriggerPolarity()}")
     camera.set_trigger_polarity("POSITIVE")
     print(f"Current trigger polarity: {camera.get_TriggerPolarity()}")
-    # camera.setPMode("Alternate Normal")
-    # print(f"PMode {camera.getPMode()}")
+
+    # camera.set_PMode("Alternate Normal")
+    # print(f"PMode {camera.get_PMode()}")
     print(f"All PMode options: {camera.get_allPModevalues()}")
-    # camera.setGain(2)
+    camera.set_PMode("AREA")
+    print(f"PMode {camera.get_PMode()}")
+
+    print(f"Scan mode: {camera.get_scan_mode()}")
+    camera.set_scan_mode(2)
+    print(f"Scan mode: {camera.get_scan_mode()}")
+
     print(f"Gain: {camera.get_gain()}")
     readout_rates = camera.get_allReadoutRates()
     print(f"All ReadoutRates options: {readout_rates}")
     # camera.set_ReadoutRate(readout_rates[1])
-    print(f"Setted ReadoutRate: {camera.get_ReadoutRate()}")
+    print(f"Set ReadoutRate: {camera.get_ReadoutRate()}")
     # print(f"Bytes per pixel {camera.getBytesPerPixel()}")
     # img = camera.get_image()
+    # camera.set_exposure(0.05)
+    camera.set_MaxSens(4)
+    print(f"PMode {camera.get_PMode()}")
+    print(f"Scan mode: {camera.get_scan_mode()}")
+    camera.set_shortest_exposure()
+    print(f"Exposure time: {camera.get_exposure_time()} ms")
+
+    camera.set_TriggerMode(val="Strobed")
+    print(f"Trigger mode: {camera.get_TriggerMode()}")
     camera.plot_img()
