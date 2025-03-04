@@ -85,12 +85,16 @@ class MMcamera():
         # self.get_params()
 
     def set_shortest_exposure(self):
-        if self.get_scan_mode() == "2":
-            # exp_step = float(self.instr.get_property("Camera", "INTERNAL LINE INTERVAL"))
-            val = self.instr.get_property_lower_limit("Camera", "Exposure")
-            self.set_exposure(val*1.1)   # lower limit freezes MM with Hamamatsu cam
+        if "Hamamatsu" in self.name:
+            if self.get_scan_mode() == "2":
+                # exp_step = float(self.instr.get_property("Camera", "INTERNAL LINE INTERVAL"))
+                val = self.instr.get_property_lower_limit("Camera", "Exposure")
+                self.set_exposure(val*1.1)   # lower limit freezes MM with Hamamatsu cam
+            else:
+                self.set_exposure(0.05)
         else:
-            self.set_exposure(0.05)
+            self.set_exposure(0.02)
+        print(f"Exposure time: {self.get_exposure_time()} ms")
 
     def set_binning(self, binning=1):
         if isinstance(binning, int):
@@ -163,10 +167,10 @@ class MMcamera():
         else:
             return self.instr.get_property("Camera", "BitDepth")
 
-    def set_MaxSens(self, binning=4):
+    def set_MaxSens(self, binning=4, mode="PHOTON NUMBER RESOLVING"):
         self.set_binning(binning)
         if "Hamamatsu" in self.name:
-            self.set_PMode("PHOTON NUMBER RESOLVING")
+            self.set_PMode(mode)
         else:
             # for PVCAM cameras
             self.set_PMode("Alternate Normal")
@@ -233,7 +237,7 @@ class MMcamera():
                 self.set_trigger_polarity("POSITIVE")
             self.instr.set_property("Camera", "TRIGGER SOURCE", str(val))
             mode = self.instr.get_property("Camera", "TRIGGER SOURCE")
-            print(f"Triggermode: { mode }")
+            print(f"Trigger mode: { mode }")
 
     def set_trigger_polarity(self, val="POSITIVE"):
         if "Hamamatsu" in self.name:
@@ -258,7 +262,10 @@ class MMcamera():
         return allowed
 
     def get_scan_mode(self):  # for Hamamatsu cam
-        result = self.instr.get_property("Camera", "ScanMode")
+        if "Hamamatsu" in self.name:
+            result = self.instr.get_property("Camera", "ScanMode")
+        else:
+            result = "Global shutter"
         return result
 
     def set_scan_mode(self, val):  # for Hamamatsu cam
@@ -302,7 +309,7 @@ if __name__ == "__main__":
     camera = MMcamera()
     # camera.set_exposure(100)
     # camera.set_shortest_exposure()
-    # print(f"Exposure time: {camera.get_exposure_time()} ms")
+    print(f"Exposure time: {camera.get_exposure_time()} ms")
     # print(f"All allowed Exposure times: {camera.get_allExposureTimes()}")
     # print(f"Result of test: {camera.get_test()}")
     # camera.setMaxSens("8x8")
@@ -325,7 +332,7 @@ if __name__ == "__main__":
     # camera.set_PMode("Alternate Normal")
     # print(f"PMode {camera.get_PMode()}")
     print(f"All PMode options: {camera.get_allPModevalues()}")
-    camera.set_PMode("AREA")
+    # camera.set_PMode("AREA")
     print(f"PMode {camera.get_PMode()}")
 
     print(f"Scan mode: {camera.get_scan_mode()}")
