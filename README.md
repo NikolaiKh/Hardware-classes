@@ -18,6 +18,6 @@ Every class file contains "__main__" function for testing the device communicati
 - [Thorlabs](https://www.thorlabs.de/) camera
 - [ImageSource](https://www.theimagingsource.com/en-us/) camera
 - [Piezosystem Jena](https://www.piezosystem.com/)
-- (APT Software Thorlabs](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=9019) for translation stages
+- [APT Software Thorlabs](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=9019) for translation stages
 - [Standa](https://www.standa.lt/) motion control. Based on [XIMC software](https://files.xisupport.com/Software.en.html)
 - [Zurich Instruments](https://www.zhinst.com/) lock-in amplifier. Tested with MFLI and HF2LI
