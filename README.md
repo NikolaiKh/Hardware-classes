@@ -4,7 +4,7 @@
 Every class file contains "__main__" function for testing the device communication.
 
 ## List of supported hardware:
-### Python:
+### Python
 - Stanford Research Lock-in amplifier SR830 / SR844. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
 - NewPort XPS controller
 - Lakeshore 340 temperature controller. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#) and [RickyZiegahn github]([RickyZiegahn/Lakeshore-Cryostat-Controller](https://github.com/RickyZiegahn/Lakeshore-Cryostat-Controller). Should work with models 330, 336, 340. But I tested it with 340 only
