@@ -1,6 +1,8 @@
 # Hardware classes
  Last version of Python and Matlab classes for different devices I used in the lab. Other projects (e.g. pump-probe-gui) could use old versions. I used a few basic functions only. Thus, if you need full-functionality, you can update classes based on hardware manuals, or check, for expample, [pymeasure](https://pymeasure.readthedocs.io/en/latest/index.html). It contains a lot of ready-to-use python implementations of a number of devices.
 
+Every class file contains "__main__" function for testing the device communication.
+
 ## List of supported hardware:
 ### Python:
 - Stanford Research Lock-in amplifier SR830 / SR844. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
