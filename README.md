@@ -10,3 +10,6 @@
 - Stanford Research delay generator DG645. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
 - Thorlabs Kinetix motion control. Tested with linear stages DDS600/M and DDS220/M. Based on [PyLabLib](https://pylablib.readthedocs.io/en/latest/)
 - Zurich Instruments Lock-in amplifier MFLI
+
+### Matlab
+- Thorlabs cameras
