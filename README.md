@@ -8,7 +8,7 @@
 - Physics Instrument (PI) motion controller. Bases 
 - pycromanager class -- to use cameras with [MicroManager](https://micro-manager.org/). Based on [pycromanager](https://pycro-manager.readthedocs.io/en/latest/index.html). Tested with Teledyne Reriga R3, Teledyne CollSnap HQ, Hamamatsu Quest, pco.2000, Teledyne Kinetix22, Hamamatsu ORCA-Fusion BT, Andor Sona
 - Stanford Research delay generator DG645. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
-- Thorlabs Kinetix motion control. Tested with linear stages DDS600/M and DDS220/M. Based on [PyLabLib](https://pylablib.readthedocs.io/en/latest/)
+- Thorlabs Kinetix motion control. Based on [PyLabLib](https://pylablib.readthedocs.io/en/latest/). Tested with linear stages DDS600/M and DDS220/M
 - Zurich Instruments Lock-in amplifier MFLI
 
 ### Matlab
