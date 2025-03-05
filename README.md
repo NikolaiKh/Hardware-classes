@@ -5,6 +5,8 @@
 ### Python:
 - Stanford Research Lock-in amplifier SR830 / SR844. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
 - NewPort XPS controller
+- Lakeshore 340 temperature controller. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#) and [RickyZiegahn github](RickyZiegahn/Lakeshore-Cryostat-Controller
+). Should work with models 330, 336, 340. But I tested it with 340 only
 - Physics Instrument (PI) motion controller. Based on [pipython](https://pipython.physikinstrumente.com/)
 - pycromanager class -- to use cameras with [MicroManager](https://micro-manager.org/). Based on [pycromanager](https://pycro-manager.readthedocs.io/en/latest/index.html). Tested with Teledyne Reriga R3, Teledyne CollSnap HQ, Hamamatsu Quest, pco.2000, Teledyne Kinetix22, Hamamatsu ORCA-Fusion BT, Andor Sona
 - Stanford Research delay generator DG645. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
