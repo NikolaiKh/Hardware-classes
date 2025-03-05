@@ -5,7 +5,7 @@
 ### Python:
 - Stanford Research Lock-in amplifier SR830 / SR844. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
 - NewPort XPS controller
-- Physics Instrument (PI) motion controller. Bases 
+- Physics Instrument (PI) motion controller. Based on [pipython](https://pipython.physikinstrumente.com/)
 - pycromanager class -- to use cameras with [MicroManager](https://micro-manager.org/). Based on [pycromanager](https://pycro-manager.readthedocs.io/en/latest/index.html). Tested with Teledyne Reriga R3, Teledyne CollSnap HQ, Hamamatsu Quest, pco.2000, Teledyne Kinetix22, Hamamatsu ORCA-Fusion BT, Andor Sona
 - Stanford Research delay generator DG645. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
 - Thorlabs Kinetix motion control. Based on [PyLabLib](https://pylablib.readthedocs.io/en/latest/). Tested with linear stages DDS600/M and DDS220/M
