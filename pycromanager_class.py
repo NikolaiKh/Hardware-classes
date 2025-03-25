@@ -33,6 +33,8 @@ class MMcamera():
 
 
     def get_image(self):
+        if "Hamamatsu" in self.params["Description"]:
+            self.set_scan_mode(1)   # Hamamatsu gives unknown error at long exposure times. The line helps
         self.instr.snap_image()
         tagged_image = self.instr.get_tagged_image()
         h = tagged_image.tags['Height']
@@ -90,6 +92,8 @@ class MMcamera():
         #             Setting to maximum acquisition time: 8 000 ms.')
         #     self.instr.set_exposure(8000)
         if "Hamamatsu" in self.name:
+            # if val > 1000:
+            #     self.instr.set_property(self.device_label, "EXPOSURE TIME UNITS", 'SECONDS')
             scan_mode = int(self.get_scan_mode())
             if scan_mode == 2:
                 exp_step = float(self.instr.get_property(self.device_label, "INTERNAL LINE INTERVAL"))
@@ -99,8 +103,8 @@ class MMcamera():
             ratio = -(-val // exp_step)  # in ms, round up to integer
             val = exp_step * ratio  # calculation of the new exposure value
         self.instr.set_exposure(val)
-        exp_time = self.instr.get_property(self.device_label, "Exposure")
-        self.params["Exposure"] = exp_time
+        # exp_time = self.instr.get_property(self.device_label, "Exposure")
+        self.params["Exposure"] = val
 
     def set_shortest_exposure(self):
         if "Hamamatsu" in self.name:
@@ -332,7 +336,7 @@ class MMcamera():
         # 1 = low nise mode
         # 2 = fast mode
         if "Hamamatsu" in self.name:
-            self.instr.set_property(self.device_label, "ScanMode", val)
+            self.instr.set_property(self.device_label, "ScanMode", 1)   # we will work in most sensitive mode always
         else:
             # for Teledyne camera
             match val:
@@ -373,7 +377,7 @@ class MMcamera():
 
 if __name__ == "__main__":
     camera = MMcamera()
-    camera.set_exposure(75)
+    camera.set_exposure(5575)
     # camera.set_shortest_exposure()
     print(f"Exposure time: {camera.get_exposure_time()} ms")
     # print(f"All allowed Exposure times: {camera.get_allExposureTimes()}")
@@ -383,7 +387,7 @@ if __name__ == "__main__":
     # camera.set_gain(2)
 
     print(f"All allowed binning options: {camera.get_allBinningvalues()}")
-    # camera.set_binning(4)
+    camera.set_binning(4)
     print(f"Binning {camera.get_binning()}")
     print(f"Pixel type {camera.get_PixelType()}")
 
@@ -402,7 +406,7 @@ if __name__ == "__main__":
     print(f"PMode {camera.get_PMode()}")
 
     print(f"Scan mode: {camera.get_scan_mode()}")
-    # camera.set_scan_mode(2)
+    camera.set_scan_mode(1)
     print(f"Scan mode: {camera.get_scan_mode()}")
 
     print(f"Gain: {camera.get_gain()}")
@@ -422,4 +426,7 @@ if __name__ == "__main__":
     # camera.set_TriggerMode(val="Strobed")
     print(f"Trigger mode: {camera.get_TriggerMode()}")
     camera.plot_img()
+    # camera.set_scan_mode(1)
+    camera.plot_img()
     print(camera.params)
+    np.save('cam_settings.npy', camera.params)
