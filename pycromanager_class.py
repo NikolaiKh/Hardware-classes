@@ -35,8 +35,11 @@ class MMcamera():
     def get_image(self):
         if "Hamamatsu" in self.params["Description"]:
             self.set_scan_mode(1)   # Hamamatsu gives unknown error at long exposure times. The line helps
-        self.instr.snap_image()
-        tagged_image = self.instr.get_tagged_image()
+        # Hamamatsu gives array of Zeros sometimes at longer exp times
+        while mean_val == 0:
+            self.instr.snap_image()
+            tagged_image = self.instr.get_tagged_image()
+            mean_val = np.mean(tagged_image.pix)
         h = tagged_image.tags['Height']
         w = tagged_image.tags['Width']
         img = np.reshape(tagged_image.pix[0:h * w], newshape=[h, w])
