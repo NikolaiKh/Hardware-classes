@@ -12,7 +12,7 @@ import time
 # ser = serial.Serial(port=pname,baudrate=57600,parity='O',bytesize=7,timeout=1)
 # sleeptime = 10
 
-class Lakeshore:
+class TemControlDevice:
     def __init__(self, gpibport):
         rm = pyvisa.ResourceManager()
         self.lakeshore = rm.open_resource(f'GPIB0::{gpibport}::INSTR')
@@ -102,9 +102,10 @@ class Lakeshore:
         For output 2: 0 is off; 1 is 0.5W; 2 is 5W; 3 is 50W
         '''
         if self.model == 'MODEL330':
-            self.lakeshore.write('RANG' + value_range + '\n')
+            self.lakeshore.write('RANG' + str(value_range) + '\n')
         elif self.model == 'MODEL340' or self.model == 'MODEL336':
-            self.lakeshore.write('RANGE ' + output + ',' + value_range + '\n')
+            # self.lakeshore.write('RANGE ' + output + ',' + str(value_range) + '\n')
+            self.lakeshore.write('RANGE ' + str(value_range) + '\n')
 
     def query_heater_range(self, output='1'):
         '''
@@ -124,6 +125,31 @@ class Lakeshore:
             rstr = self.lakeshore.query('RANGE? ' + output)
             rstr = rstr[0:len(rstr)-2]
             return rstr
+
+    def set_ramp(self, loop="1", ramp="1", rate=5):
+        # tested with model 340 only
+        # Input: RAMP <loop>, [<off/on>], [<rate value>]
+        # RAMP 1, 1, 10.5[term]
+        if self.model == 'MODEL340':
+            self.lakeshore.write(f'RAMP {loop}, {ramp}, {rate}' + '\n')
+
+    def query_ramp(self, loop='1'):
+        # tested with model 340 only
+        # Input: RAMP? < loop >
+        # Returned: < off / on >, < rate value >.Format: nnn.n[term]
+        if self.model == 'MODEL340':
+            rstr = self.lakeshore.query(f'RAMP? {loop}' +'\n')
+        return float(rstr.split(",")[-1])
+
+    def query_heater_power(self):
+        # tested with model 340 only
+        # Input: HTR?
+        # Returned: < heater value >.Format: nnn.n[term]
+        # Remarks: Returns the heater output in percent.
+        if self.model == 'MODEL340':
+            rstr = self.lakeshore.query(f'HTR?' +'\n')
+        return float(rstr.split(",")[-1])
+
 
     def set_alarm(self, value_channel, on_off, value_high, value_low):
         '''
@@ -211,17 +237,26 @@ class Lakeshore:
 
 
 if __name__ == "__main__":
-    temp_controller = Lakeshore(12) #use your GPIB port
+    temp_controller = TemControlDevice(12) #use your GPIB port
     print(temp_controller.state)
     curr_temp = float(temp_controller.query_temp('A'))
     set_temp = float(temp_controller.query_setpoint())
     print('Current temperature ', temp_controller.query_temp('A'), 'K')    
-    temp_controller.set_setpoint(305)
+    temp_controller.set_setpoint(294)
+    # temp_controller.set_heater_range(4)
+    print(f"Heater range: {temp_controller.query_heater_range()}")
+    temp_controller.set_ramp(rate=10)
+    print(f"Ramp rate: {temp_controller.query_ramp()}")
     time.sleep(2)
-    set_temp = float(temp_controller.query_setpoint())
-    print('Set point is ', set_temp, 'K')    
-    while abs(curr_temp - set_temp) > 0.5:
-        curr_temp = float(temp_controller.query_temp('A'))
-        print('Current temperature ', curr_temp, 'K')
-        print('Set point is ', temp_controller.query_setpoint(), 'K')
-        time.sleep(2)
+    # set_temp = float(temp_controller.query_setpoint())
+    # print('Set point is ', set_temp, 'K')
+    heater_power = float(temp_controller.query_heater_power())
+    print('Heater power is ', heater_power, '%')
+    time.sleep(1)
+    heater_power = float(temp_controller.query_heater_power())
+    print('Heater power is ', heater_power, '%')
+    # while abs(curr_temp - set_temp) > 0.5:
+    #     curr_temp = float(temp_controller.query_temp('A'))
+    #     print('Current temperature ', curr_temp, 'K')
+    #     print('Set point is ', temp_controller.query_setpoint(), 'K')
+    #     time.sleep(2)
