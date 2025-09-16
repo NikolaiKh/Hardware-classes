@@ -36,6 +36,7 @@ class MMcamera():
         if "Hamamatsu" in self.params["Description"]:
             self.set_scan_mode(1)   # Hamamatsu gives unknown error at long exposure times. The line helps
         # Hamamatsu gives array of Zeros sometimes at longer exp times
+        mean_val = 0
         while mean_val == 0:
             self.instr.snap_image()
             tagged_image = self.instr.get_tagged_image()
@@ -433,3 +434,4 @@ if __name__ == "__main__":
     camera.plot_img()
     print(camera.params)
     np.save('cam_settings.npy', camera.params)
+
