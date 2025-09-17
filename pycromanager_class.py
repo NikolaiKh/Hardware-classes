@@ -1,3 +1,9 @@
+### Wrap for pycromanager https://pycro-manager.readthedocs.io/en/latest/
+# made by Nikolai Khokhlov
+# vesrion: 2025.09.17.0
+# latest version: https://github.com/NikolaiKh/Hardware-classes/blob/main/pycromanager_class.py
+###
+
 # Import micromanager classes
 from pycromanager import Core
 # from pycromanager import Bridge
@@ -434,4 +440,5 @@ if __name__ == "__main__":
     camera.plot_img()
     print(camera.params)
     np.save('cam_settings.npy', camera.params)
+
 
