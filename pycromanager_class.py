@@ -1,6 +1,7 @@
 ### Wrap for pycromanager https://pycro-manager.readthedocs.io/en/latest/
 # made by Nikolai Khokhlov
-# vesrion: 2025.09.17.0
+# vesrion: 2025.09.17.1
+# add "mean < 1" if image is not taken
 # latest version: https://github.com/NikolaiKh/Hardware-classes/blob/main/pycromanager_class.py
 ###
 
@@ -22,7 +23,7 @@ class MMcamera():
         self.img_metadata = {}
         self.device_label = "Camera"
         self.name = self.get_camera_name()
-        print(f"Camera {self.name} is connected")
+        self.log(f"Camera {self.name} is connected")
         self.show = show
         self.method_get = 'get_params'
         self.method_set = 'set_params'
@@ -37,13 +38,12 @@ class MMcamera():
         self.params["Description"] = name
         return name
 
-
     def get_image(self):
         if "Hamamatsu" in self.params["Description"]:
             self.set_scan_mode(1)   # Hamamatsu gives unknown error at long exposure times. The line helps
         # Hamamatsu gives array of Zeros sometimes at longer exp times
         mean_val = 0
-        while mean_val == 0:
+        while mean_val < 1:
             self.instr.snap_image()
             tagged_image = self.instr.get_tagged_image()
             mean_val = np.mean(tagged_image.pix)
@@ -56,7 +56,7 @@ class MMcamera():
         for key in tagged_image.tags:
             if "Camera-" not in key:
                 self.img_metadata[key] = tagged_image.tags[key]
-        # save parameters of the camera only 
+        # save parameters of the camera only
         for key in tagged_image.tags.keys():
             if "Camera-" in key:
                 self.params[key.split("-")[1]] = tagged_image.tags[key]
@@ -126,7 +126,7 @@ class MMcamera():
                 self.set_exposure(0.05)
         else:
             self.set_exposure(0.02)
-        print(f"Exposure time: {self.get_exposure_time()} ms")
+        self.log(f"Exposure time: {self.get_exposure_time()} ms")
         exp_time = self.instr.get_property(self.device_label, "Exposure")
         self.params["Exposure"] = exp_time
 
@@ -300,7 +300,7 @@ class MMcamera():
                 self.set_trigger_polarity("POSITIVE")
             self.instr.set_property(self.device_label, "TRIGGER SOURCE", str(val))
             mode = self.instr.get_property(self.device_label, "TRIGGER SOURCE")
-            print(f"Trigger mode: {mode}")
+            self.log(f"Trigger mode: {mode}")
         self.get_TriggerMode()
 
     def set_trigger_polarity(self, val="POSITIVE"):
@@ -367,27 +367,27 @@ class MMcamera():
     def get_test(self):
         low_limit = self.instr.get_property_lower_limit(self.device_label, "Exposure")
         upper_limit = self.instr.get_property_upper_limit(self.device_label, "Exposure")
-        print(f"Lower limit: {low_limit}")
-        print(f"Upper limit: {upper_limit}")
+        self.log(f"Lower limit: {low_limit}")
+        self.log(f"Upper limit: {upper_limit}")
         javalist = self.instr.get_allowed_property_values(self.device_label, "Exposure")
         allowed = []
         for index in range(javalist.capacity()):
             allowed.append(javalist.get(index))
-        print(f"Allowed: {allowed}")
+        self.log(f"Allowed: {allowed}")
         is_limited = self.instr.has_property_limits(self.device_label, "Exposure")
-        print(f"Are limits?: {is_limited}")
+        self.log(f"Are limits?: {is_limited}")
         javalist2 = self.instr.get_device_property_names(self.device_label)
         property_names = []
         for index in range(javalist.capacity()):
             property_names.append(javalist.get(index))
         exp_type = self.instr.get_property_type(self.device_label, "Exposure")
-        print(f"Type: {exp_type}")
+        self.log(f"Type: {exp_type}")
         return
 
 
 if __name__ == "__main__":
     camera = MMcamera()
-    camera.set_exposure(5575)
+    camera.set_exposure(200)
     # camera.set_shortest_exposure()
     print(f"Exposure time: {camera.get_exposure_time()} ms")
     # print(f"All allowed Exposure times: {camera.get_allExposureTimes()}")
@@ -436,9 +436,5 @@ if __name__ == "__main__":
     # camera.set_TriggerMode(val="Strobed")
     print(f"Trigger mode: {camera.get_TriggerMode()}")
     camera.plot_img()
-    # camera.set_scan_mode(1)
-    camera.plot_img()
     print(camera.params)
     np.save('cam_settings.npy', camera.params)
-
-
