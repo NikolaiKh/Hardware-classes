@@ -1,5 +1,5 @@
 # made by Nikolai Khokhlov
-# version: 2026.11.06.1
+# version: 2026.11.10.1
 
 import time
 from datetime import datetime
@@ -554,6 +554,95 @@ class WaveGenerator:
         err = self.device.query("EER?").strip()
         print(f"Last execution error of Wavetek Model 29: {err}")
         return err
+
+    def wait_for_voltage(
+        self,
+        target_voltage=None,
+        tolerance=0.01,
+        timeout=5.0,
+        poll_interval=0.05,
+        settle_time=0.2):
+        """
+        Wait until the physical programmed voltage reaches the target.
+
+        Parameters
+        ----------
+        target_voltage : float or None
+            Target voltage in Vpp. If None, self.target_voltage is used.
+
+        tolerance : float
+            Maximum allowed absolute difference in Vpp.
+
+        timeout : float
+            Maximum waiting time in seconds.
+
+        poll_interval : float
+            Delay between voltage queries in seconds.
+
+        settle_time : float
+            Additional delay after reaching the target.
+
+        Returns
+        -------
+        float
+            Last voltage read from the Wavetek.
+        """
+
+        if target_voltage is None:
+            target_voltage = self.target_voltage
+
+        if target_voltage is None:
+            raise RuntimeError(
+                "Target voltage is unknown. "
+                "Use set_voltage() before wait_for_voltage()."
+            )
+
+        target_voltage = float(target_voltage)
+        tolerance = float(tolerance)
+        timeout = float(timeout)
+        poll_interval = float(poll_interval)
+        settle_time = float(settle_time)
+
+        self._validate_voltage(target_voltage)
+
+        if tolerance <= 0:
+            raise ValueError("tolerance must be positive")
+
+        if timeout <= 0:
+            raise ValueError("timeout must be positive")
+
+        if poll_interval <= 0:
+            raise ValueError("poll_interval must be positive")
+
+        if settle_time < 0:
+            raise ValueError("settle_time cannot be negative")
+
+        start_time = time.monotonic()
+        last_voltage = None
+
+        while time.monotonic() - start_time < timeout:
+
+            last_voltage = self.get_voltage()
+
+            if abs(last_voltage - target_voltage) <= tolerance:
+
+                if settle_time > 0:
+                    time.sleep(settle_time)
+
+                print(
+                    f"Wavetek voltage reached "
+                    f"{last_voltage:g} Vpp"
+                )
+
+                return last_voltage
+
+            time.sleep(poll_interval)
+
+        raise TimeoutError(
+            f"Wavetek did not reach {target_voltage:g} Vpp "
+            f"within {timeout:g} s. "
+            f"Last reported voltage: {last_voltage!r} Vpp"
+        )
 
 
 if __name__ == "__main__":
