@@ -13,6 +13,7 @@ Every class file contains "__main__" function for testing the device communicati
 - Stanford Research delay generator DG645. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
 - [Thorlabs](https://www.thorlabs.de/) Kinetix motion control. Based on [PyLabLib](https://pylablib.readthedocs.io/en/latest/). Tested with linear stages DDS600/M and DDS220/M
 - [Zurich Instruments](https://www.zhinst.com/) Lock-in amplifier MFLI
+- DDS Function generator Waveteck 29. Based on [PyVISA](https://pyvisa.readthedocs.io/en/latest/#)
 
 ### Matlab
 - [Thorlabs](https://www.thorlabs.de/) camera
