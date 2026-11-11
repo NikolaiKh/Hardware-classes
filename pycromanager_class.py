@@ -1,7 +1,7 @@
 ### Wrap for pycromanager https://pycro-manager.readthedocs.io/en/latest/
 # made by Nikolai Khokhlov
-# vesrion: 2026.11.11.0
-# add roi option, to save data transfer/processing
+# vesrion: 2025.09.17.1
+# add "mean < 1" if image is not taken
 # latest version: https://github.com/NikolaiKh/Hardware-classes/blob/main/pycromanager_class.py
 ###
 
@@ -400,16 +400,40 @@ class MMcamera():
 
     def get_roi(self):
         """
-        Return the current camera ROI as:
+        Return the actual hardware ROI as:
 
             (x, y, width, height)
         """
 
-        roi = self.instr.get_roi()
+        roi_java = self.instr.get_roi()
 
-        # Depending on the Pycro-Manager version, get_roi() may return
-        # a tuple-like Java/Python object.
-        roi = tuple(int(value) for value in roi)
+        # pyjavaz exposes java.awt.Rectangle public fields.
+        try:
+            roi = (
+                int(roi_java.x),
+                int(roi_java.y),
+                int(roi_java.width),
+                int(roi_java.height)
+            )
+
+        except (AttributeError, TypeError):
+            # Fallback to java.awt.Rectangle getter methods.
+            try:
+                roi = (
+                    int(roi_java.get_x()),
+                    int(roi_java.get_y()),
+                    int(roi_java.get_width()),
+                    int(roi_java.get_height())
+                )
+
+            except (AttributeError, TypeError) as error:
+                print("Raw ROI:", roi_java)
+                print("ROI type:", type(roi_java))
+                print("Available ROI members:", dir(roi_java))
+
+                raise RuntimeError(
+                    "Could not decode java.awt.Rectangle returned by get_roi()"
+                ) from error
 
         self.params["ROI"] = roi
 
@@ -467,57 +491,72 @@ class MMcamera():
 
 if __name__ == "__main__":
     camera = MMcamera()
-    camera.set_exposure(200)
-    # camera.set_shortest_exposure()
-    print(f"Exposure time: {camera.get_exposure_time()} ms")
-    # print(f"All allowed Exposure times: {camera.get_allExposureTimes()}")
-    # print(f"Result of test: {camera.get_test()}")
-    # camera.setMaxSens("8x8")
-    # camera.set_MaxSens(4)
-    # camera.set_gain(2)
+    print("Current ROI:", camera.get_roi())
+    # camera.set_exposure(2000)
+    # # camera.set_shortest_exposure()
+    # print(f"Exposure time: {camera.get_exposure_time()} ms")
+    # # print(f"All allowed Exposure times: {camera.get_allExposureTimes()}")
+    # # print(f"Result of test: {camera.get_test()}")
+    # # camera.setMaxSens("8x8")
+    # # camera.set_MaxSens(4)
+    # # camera.set_gain(2)
 
-    print(f"All allowed binning options: {camera.get_allBinningvalues()}")
-    camera.set_binning(4)
-    print(f"Binning {camera.get_binning()}")
-    print(f"Pixel type {camera.get_PixelType()}")
+    # print(f"All allowed binning options: {camera.get_allBinningvalues()}")
+    # camera.set_binning(2)
+    # print(f"Binning {camera.get_binning()}")
+    # print(f"Pixel type {camera.get_PixelType()}")
 
-    print(f"Trigger mode: {camera.get_TriggerMode()}")
-    # camera.set_TriggerMode("Timed")
-    print(f"Trigger mode: {camera.get_TriggerMode()}")
-    print(f"All trigger polarities: {camera.get_allTriggerPolarities()}")
-    print(f"Current trigger polarity: {camera.get_TriggerPolarity()}")
-    # camera.set_trigger_polarity("POSITIVE")
-    print(f"Current trigger polarity: {camera.get_TriggerPolarity()}")
+    # print(f"Trigger mode: {camera.get_TriggerMode()}")
+    # # camera.set_TriggerMode("Timed")
+    # print(f"Trigger mode: {camera.get_TriggerMode()}")
+    # print(f"All trigger polarities: {camera.get_allTriggerPolarities()}")
+    # print(f"Current trigger polarity: {camera.get_TriggerPolarity()}")
+    # # camera.set_trigger_polarity("POSITIVE")
+    # print(f"Current trigger polarity: {camera.get_TriggerPolarity()}")
 
-    # camera.set_PMode("Alternate Normal")
+    # # camera.set_PMode("Alternate Normal")
+    # # print(f"PMode {camera.get_PMode()}")
+    # print(f"All PMode options: {camera.get_allPModevalues()}")
+    # # camera.set_PMode("AREA")
     # print(f"PMode {camera.get_PMode()}")
-    print(f"All PMode options: {camera.get_allPModevalues()}")
-    # camera.set_PMode("AREA")
-    print(f"PMode {camera.get_PMode()}")
 
-    print(f"Scan mode: {camera.get_scan_mode()}")
-    camera.set_scan_mode(1)
-    print(f"Scan mode: {camera.get_scan_mode()}")
+    # print(f"Scan mode: {camera.get_scan_mode()}")
+    # camera.set_scan_mode(1)
+    # print(f"Scan mode: {camera.get_scan_mode()}")
 
-    print(f"Gain: {camera.get_gain()}")
-    readout_rates = camera.get_allReadoutRates()
-    print(f"All ReadoutRates options: {readout_rates}")
-    # camera.set_ReadoutRate(readout_rates[1])
-    print(f"Set ReadoutRate: {camera.get_ReadoutRate()}")
-    # print(f"Bytes per pixel {camera.getBytesPerPixel()}")
-    # img = camera.get_image()
-    # camera.set_exposure(0.05)
-    # camera.set_MaxSens(4)
-    print(f"PMode {camera.get_PMode()}")
-    print(f"Scan mode: {camera.get_scan_mode()}")
-    # camera.set_shortest_exposure()
-    print(f"Exposure time: {camera.get_exposure_time()} ms")
+    # print(f"Gain: {camera.get_gain()}")
+    # readout_rates = camera.get_allReadoutRates()
+    # print(f"All ReadoutRates options: {readout_rates}")
+    # # camera.set_ReadoutRate(readout_rates[1])
+    # print(f"Set ReadoutRate: {camera.get_ReadoutRate()}")
+    # # print(f"Bytes per pixel {camera.getBytesPerPixel()}")
+    # # img = camera.get_image()
+    # # camera.set_exposure(0.05)
+    # # camera.set_MaxSens(4)
+    # print(f"PMode {camera.get_PMode()}")
+    # print(f"Scan mode: {camera.get_scan_mode()}")
+    # # camera.set_shortest_exposure()
+    # print(f"Exposure time: {camera.get_exposure_time()} ms")
 
-    # camera.set_TriggerMode(val="Strobed")
-    print(f"Trigger mode: {camera.get_TriggerMode()}")
+    # # camera.set_TriggerMode(val="Strobed")
+    # print(f"Trigger mode: {camera.get_TriggerMode()}")
+
+    requested_roi = (300, 128, 1024, 768)
+
+    camera.set_roi(*requested_roi)
+
+    # Read the actual ROI accepted by the camera.
+    real_roi = camera.get_roi()
+
+    print("Requested ROI:", requested_roi)
+    print("Real ROI:", real_roi)
+
+    # Acquire one image using the hardware ROI.
+    image = np.asarray(camera.get_image())
+
     camera.plot_img()
-    # print(camera.params)
-    # np.save('cam_settings.npy', camera.params)
+    # # print(camera.params)
+    # # np.save('cam_settings.npy', camera.params)
 
-    print(camera.instr.get_roi())
-    print(type(camera.instr.get_roi()))
+    # print(camera.instr.get_roi())
+    # print(type(camera.instr.get_roi()))
