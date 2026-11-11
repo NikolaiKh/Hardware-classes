@@ -1,7 +1,7 @@
 ### Wrap for pycromanager https://pycro-manager.readthedocs.io/en/latest/
 # made by Nikolai Khokhlov
-# vesrion: 2025.09.17.1
-# add "mean < 1" if image is not taken
+# vesrion: 2026.11.11.0
+# add roi option, to save data transfer/processing
 # latest version: https://github.com/NikolaiKh/Hardware-classes/blob/main/pycromanager_class.py
 ###
 
@@ -359,6 +359,86 @@ class MMcamera():
         self.get_scan_mode()
 
 
+    def set_roi(self, x, y, width, height):
+        """
+        Set camera hardware ROI.
+
+        Parameters are specified in unbinned sensor coordinates:
+            x, y          ROI top-left corner
+            width, height ROI dimensions
+        """
+
+        x = int(x)
+        y = int(y)
+        width = int(width)
+        height = int(height)
+
+        if x < 0 or y < 0:
+            raise ValueError("ROI x and y must be non-negative")
+
+        if width <= 0 or height <= 0:
+            raise ValueError("ROI width and height must be positive")
+
+        # Stop acquisition before changing the sensor ROI.
+        if self.instr.is_sequence_running():
+            self.instr.stop_sequence_acquisition()
+
+        self.instr.set_roi(x, y, width, height)
+
+        actual_roi = self.get_roi()
+
+        self.params["ROI"] = actual_roi
+
+        self.log(
+            f"Camera ROI set to "
+            f"x={actual_roi[0]}, y={actual_roi[1]}, "
+            f"width={actual_roi[2]}, height={actual_roi[3]}"
+        )
+
+        return actual_roi
+
+
+    def get_roi(self):
+        """
+        Return the current camera ROI as:
+
+            (x, y, width, height)
+        """
+
+        roi = self.instr.get_roi()
+
+        # Depending on the Pycro-Manager version, get_roi() may return
+        # a tuple-like Java/Python object.
+        roi = tuple(int(value) for value in roi)
+
+        self.params["ROI"] = roi
+
+        return roi
+
+
+    def clear_roi(self):
+        """
+        Clear the hardware ROI and restore the full sensor area.
+        """
+
+        if self.instr.is_sequence_running():
+            self.instr.stop_sequence_acquisition()
+
+        self.instr.clear_roi()
+
+        roi = self.get_roi()
+
+        self.params["ROI"] = roi
+
+        self.log(
+            f"Camera ROI cleared; active area is "
+            f"x={roi[0]}, y={roi[1]}, "
+            f"width={roi[2]}, height={roi[3]}"
+        )
+
+        return roi
+
+
     def set_property(self, prorerty, value):
         if self.instr.has_property(self.device_label, prorerty):
             self.instr.set_property(self.device_label, prorerty, value)
@@ -436,5 +516,8 @@ if __name__ == "__main__":
     # camera.set_TriggerMode(val="Strobed")
     print(f"Trigger mode: {camera.get_TriggerMode()}")
     camera.plot_img()
-    print(camera.params)
-    np.save('cam_settings.npy', camera.params)
+    # print(camera.params)
+    # np.save('cam_settings.npy', camera.params)
+
+    print(camera.instr.get_roi())
+    print(type(camera.instr.get_roi()))
