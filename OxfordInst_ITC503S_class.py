@@ -13,13 +13,6 @@ class TemControlDevice:
     Modes supported: GPIB
     :param gpib_addr: GPIB address of the ITC 503
     """
-    # def __init__(self, gpib_addr=24):
-    #     resource_manager = pyvisa.ResourceManager()
-    #     self.TController = resource_manager.open_resource(f"GPIB::{gpib_addr}::INSTR")
-    #     self.TController.read_termination = '\r'
-    #     self.status = ('ITC503 Connected')
-    #     self.model = "ITC503"
-    #     self.state = f'Lakeshore is connected. Model {self.model}'
     def __init__(self):
         self.lakeshore = None
         self.model = None
@@ -35,10 +28,13 @@ class TemControlDevice:
         else:
             self.TController = self.rm.open_resource(f'GPIB0::{device_name}::INSTR')
         self.TController.read_termination = '\r'
-        self.status = ('ITC503 Connected')
-        self.model = "ITC503"
-        self.state = f'ITC503 is connected. Model {self.model}'
-        print(self.status)
+        # direct Oxford command
+        self.TController.write("V")
+        self.name = self.TController.read()
+        rlist = self.name.split(' ')
+        self.model = rlist[0]
+        self.state = f'Oxford {self.model} connected'
+        print(self.state)
 
     def query_temp(self): # get current temperature
         return self.getValue(1)
@@ -138,14 +134,14 @@ if __name__ == "__main__":
     # temp_controller = TemControlDevice(24)# use your GPIB port
     temp_controller = TemControlDevice() #use your GPIB port
     temp_controller.init_controller('GPIB0::24::INSTR')
-    print(temp_controller.state)
+    # print(temp_controller.state)
     # print('SensorTemp:', temp_controller.query_temp())
     # print('SetTemp:', temp_controller.query_setpoint())
     # temp_controller.setControl(1,1)
-    temp_controller.set_setpoint(310)
-    temp_controller.setAutoControl(3)
-    temp_controller.setControl(0, 0)
-    temp_controller.getValue(1)
-    print('SensorTemp:', temp_controller.getValue(1))
-    print('SetTemp:', temp_controller.getValue(0))
-    print('Heater pwr:', temp_controller.getValue(5), '%')
+    # temp_controller.set_setpoint(310)
+    # temp_controller.setAutoControl(3)
+    # temp_controller.setControl(0, 0)
+    # temp_controller.getValue(1)
+    # print('SensorTemp:', temp_controller.getValue(1))
+    # print('SetTemp:', temp_controller.getValue(0))
+    # print('Heater pwr:', temp_controller.getValue(5), '%')
